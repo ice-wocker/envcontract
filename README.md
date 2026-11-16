@@ -1,4 +1,4 @@
-# EnvContract
+# EnvContract · v1.1.0
 
 **A small, dependency-free environment-variable contract auditor.** Find when code expects keys your `.env.example` forgot—or when the template carries stale keys. Local-first, CI-friendly, and deliberately careful with secrets.
 
@@ -39,6 +39,9 @@ python3 envcontract.py . --check
 # Point at a nonstandard example file
 python3 envcontract.py . --example deploy/.env.sample --format json
 
+# Exclude code fixtures explicitly with a glob
+python3 envcontract.py . --ignore 'tests/**'
+
 # Create a safe, blank template from discovered names
 python3 envcontract.py . --write-example .env.example
 ```
@@ -53,6 +56,7 @@ python3 envcontract.py . --write-example .env.example
 - Shell, Docker, and common config files: `$KEY` and `${KEY}` interpolation
 - Missing, unused, and duplicate keys in `.env.example`, `.env.sample`, `.env.template`, or `.env.defaults`
 - JSON output for CI annotations, scripts, and dashboards
+- Optional repeatable `--ignore GLOB` patterns and a root `.envcontractignore` file for excluding generated fixtures or non-runtime code
 
 The analyzer is intentionally static and conservative—not a language compiler. Dynamic key construction such as `os.getenv(prefix + name)` cannot be inferred. Review findings before treating them as a complete inventory.
 

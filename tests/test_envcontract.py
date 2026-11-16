@@ -71,6 +71,16 @@ class EnvContractTests(unittest.TestCase):
         self.assertEqual(parsed["missing"], ["MISSING"])
         self.assertFalse(parsed["clean"])
 
+    def test_ignore_file_excludes_fixture_sources(self):
+        self.write(".envcontractignore", "tests/**\n")
+        self.write("tests/fixtures.js", "const key = process.env.TEST_FIXTURE_ONLY;\n")
+        self.write("src/app.py", 'os.getenv("APP_URL")\n')
+        report = EnvContract(self.root).audit()
+        self.assertEqual(report.used, ["APP_URL"])
+        self.assertEqual(report.scanned_files, 1)
+        cli_report = EnvContract(self.root, ignores=["src/**"]).audit()
+        self.assertEqual(cli_report.used, [])
+
     def test_key_location_deduplicates_same_line(self):
         self.write("app.js", 'use(process.env.PORT, process.env.PORT)\n')
         report = EnvContract(self.root).audit()

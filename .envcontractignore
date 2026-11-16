@@ -1,0 +1,3 @@
+# Code fixtures and installer shell locals are not runtime configuration dependencies.
+tests/**
+install.sh

@@ -11,6 +11,7 @@ Python 3.8+ · Standard library only · MIT
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -19,7 +20,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 ENV_ASSIGNMENT_RE = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=")
@@ -97,9 +98,26 @@ class EnvContract:
 
     EXAMPLE_NAMES = (".env.example", ".env.sample", ".env.template", ".env.defaults")
 
-    def __init__(self, root: Path, example: Optional[str] = None):
+    def __init__(self, root: Path, example: Optional[str] = None, ignores: Optional[List[str]] = None):
         self.root = root.resolve()
         self.example_arg = example
+        self.ignore_patterns = list(ignores or [])
+        ignore_file = self.root / ".envcontractignore"
+        if ignore_file.is_file():
+            try:
+                self.ignore_patterns.extend(
+                    line.strip() for line in ignore_file.read_text(encoding="utf-8", errors="replace").splitlines()
+                    if line.strip() and not line.lstrip().startswith("#")
+                )
+            except OSError:
+                pass
+
+    def _is_ignored(self, path: Path) -> bool:
+        rel = path.relative_to(self.root).as_posix()
+        return any(
+            fnmatch.fnmatch(rel, pattern) or fnmatch.fnmatch(path.name, pattern)
+            for pattern in self.ignore_patterns
+        )
 
     def _example_path(self) -> Optional[Path]:
         if self.example_arg:
@@ -154,6 +172,8 @@ class EnvContract:
         found: Dict[str, List[Reference]] = {}
         scanned = 0
         for path in self._source_files():
+            if self._is_ignored(path):
+                continue
             try:
                 source = path.read_text(encoding="utf-8", errors="replace")
             except OSError:
@@ -248,6 +268,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument("path", nargs="?", default=".", help="Repository root (default: current directory)")
     parser.add_argument("--example", help="Explicit example file to compare (default: auto-detect .env.example/.env.sample/.env.template)")
+    parser.add_argument("--ignore", action="append", default=[], metavar="GLOB", help="Skip a source path glob (repeatable; .envcontractignore is also read)")
     parser.add_argument("--format", choices=("text", "json"), default="text", help="Report format")
     parser.add_argument("--check", action="store_true", help="Return exit code 1 if contract drift is detected")
     parser.add_argument("--write-example", metavar="PATH", help="Write a blank template containing discovered variable names")
@@ -258,7 +279,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     root = Path(args.path).resolve()
     if not root.is_dir():
         parser.error(f"repository root is not a directory: {root}")
-    tool = EnvContract(root, args.example)
+    tool = EnvContract(root, args.example, args.ignore)
     if args.write_example:
         try:
             target = tool.write_example(args.write_example, force=args.force)
@@ -266,7 +287,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         except (OSError, FileExistsError) as exc:
             parser.error(str(exc))
         # Use the newly written template as the contract for the report.
-        tool = EnvContract(root, str(target))
+        tool = EnvContract(root, str(target), args.ignore)
 
     report = tool.audit()
     if args.format == "json":
