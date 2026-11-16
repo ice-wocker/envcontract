@@ -1,4 +1,4 @@
-# EnvContract · v1.1.0
+# EnvContract · v1.1.1
 
 **A small, dependency-free environment-variable contract auditor.** Find when code expects keys your `.env.example` forgot—or when the template carries stale keys. Local-first, CI-friendly, and deliberately careful with secrets.
 

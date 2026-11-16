@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 — 2026-11-16
+
+- Pin GitHub Actions to Ubuntu 22.04 because newer `ubuntu-latest` images no longer provide Python 3.8/3.9 builds.
+
 ## 1.1.0 — 2026-11-16
 
 - Added repeatable `--ignore GLOB` filters and a root `.envcontractignore` file for excluding inline fixtures, generated code, or shell-local false positives.
