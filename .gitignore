@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env.defaults
+.venv/
+venv/
+coverage/
+.DS_Store
